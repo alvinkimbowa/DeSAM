@@ -57,6 +57,12 @@ model_save_path = os.path.join(work_dir, 'results_folder', task_name)
 os.makedirs(model_save_path, exist_ok=True)
 logger = Logger(output_folder=model_save_path)
 
+logger.print_to_log_file('gpuid: {}'.format(args.gpuid))
+logger.print_to_log_file('center: {}'.format(args.center))
+logger.print_to_log_file('work_dir: {}'.format(work_dir))
+logger.print_to_log_file('pred_embedding: {}'.format(args.pred_embedding))
+logger.print_to_log_file('mixprecision: {}'.format(args.mixprecision))
+
 # prepare SAM model
 model_zoo = {
     'vit_h': os.path.join(work_dir, 'checkpoint/sam_vit_h_4b8939.pth'),

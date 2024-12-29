@@ -11,6 +11,8 @@
 *.log
 data/
 work_dir/
+results_folder/
+image_embeddings/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -15,6 +15,7 @@ import argparse
 # set up the parser
 parser = argparse.ArgumentParser(description='preprocess non-CT images')
 parser.add_argument('-w', '--work_dir', type=str, default='E:/DeSAMData', help='path to the work dir')
+parser.add_argument('--data_path', type=str, required=True, help='path to the dataset')
 parser.add_argument('--image_size', type=int, default=256, help='image size')
 parser.add_argument('--img_name_suffix', type=str, default='_0000.nii.gz', help='image name suffix')
 parser.add_argument('--label_id', type=int, default=1, help='label id')
@@ -26,8 +27,8 @@ args = parser.parse_args()
 
 
 work_dir = args.work_dir
-nii_path = join(work_dir, 'raw_data', 'imagesTr')
-gt_path = join(work_dir, 'raw_data', 'labelsTr')
+nii_path = os.path.join(args.data_path, 'imagesTr')
+gt_path = os.path.join(args.data_path, 'labelsTr')
 npz_path = join(work_dir, 'image_embeddings', 'npz_files_{}'.format(args.model_type))
 png_path = join(work_dir, 'image_embeddings', 'png_files_{}'.format(args.model_type))
 
