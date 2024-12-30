@@ -255,7 +255,7 @@ def run_testing(
     save_mask = os.path.join(model_save_path, 'save_mask')
     os.makedirs(save_fig, exist_ok=True)
     os.makedirs(save_mask, exist_ok=True)
-    logger.print_to_log_file('now pred_iou_thresh: {}'.format(iou_thresh))
+    logger.print_to_log_file('Running testing with pred_iou_thresh: {}'.format(iou_thresh))
                     
     mask_generator = SamAutomaticMaskGenerator(
         model=model,
@@ -292,8 +292,8 @@ def run_testing(
         plt.clf()
         gc.collect()
                 
-    dice = dice_calculate(data_root, save_mask, ood_patientid, edge_set_zero=50)
-    logger.print_to_log_file('pred_iou_thresh: {}, mean_dice: {}'.format(iou_thresh, dice))
+    dice, hd = dice_calculate(data_root, save_mask, ood_patientid, edge_set_zero=50)
+    logger.print_to_log_file('pred_iou_thresh: {}, mean_dice: {:.2f} +/- {:.2f}, mean_hd: {:.2f} +/- {:.2f}'.format(iou_thresh, dice[0], dice[1], hd[0], hd[1]))
     
     
 def run_testing_wholebox(

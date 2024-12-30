@@ -8,12 +8,15 @@ from torch.utils.data import DataLoader
 from utils.utils import Logger, split_prostatedataset
 from utils.datasets import ProstateDataset
 import torch.cuda.amp
+from utils.dice_calculate import dice_calculate
+from compile_results import compile
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--gpuid', type=int, default=0)
 parser.add_argument('--seed', type=int, default=0)
 parser.add_argument('--center', type=int, default=3)
+parser.add_argument('--test_center', type=int, default=-1)
 parser.add_argument('--model_type', type=str, default='vit_h')
 parser.add_argument('--work_dir', type=str, default='E:/DeSAMData')
 
@@ -28,6 +31,7 @@ parser.add_argument('--mse', type=bool, default=False)
 parser.add_argument('--sgd', type=bool, default=False)
 parser.add_argument('--pred_embedding', type=bool, default=False)
 parser.add_argument('--test_only', type=bool, default=False)
+parser.add_argument('--eval_only', type=bool, default=False)
 parser.add_argument('--random_validation', type=bool, default=False)
 parser.add_argument('--mixprecision', type=bool, default=False)
 
@@ -59,6 +63,7 @@ logger = Logger(output_folder=model_save_path)
 
 logger.print_to_log_file('gpuid: {}'.format(args.gpuid))
 logger.print_to_log_file('center: {}'.format(args.center))
+logger.print_to_log_file('test_center: {}'.format(args.test_center))
 logger.print_to_log_file('work_dir: {}'.format(work_dir))
 logger.print_to_log_file('pred_embedding: {}'.format(args.pred_embedding))
 logger.print_to_log_file('mixprecision: {}'.format(args.mixprecision))
@@ -79,6 +84,7 @@ train_patientid, val_patientid, test_patientid = split_prostatedataset(
     data_root=data_root,
     patientid_path=patientid_path,
     center=args.center,
+    test_center=args.test_center,
     seed=args.center,
     random_validation=args.random_validation
 )
@@ -105,11 +111,25 @@ val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False)
 desam.train()
 
 # train, validation and test
-if args.test_only:
+test_center = "all" if args.test_center == -1 else args.test_center
+if args.eval_only:
+    if test_center == "all":
+        logger.print_to_log_file('Running generalization evaluation on all centers except center {}'.format(args.center))
+    else:
+        logger.print_to_log_file('Running generalization evaluation on center {}'.format(test_center))
+    save_mask = os.path.join(model_save_path, 'save_mask')
+    dice, hd = dice_calculate(data_root, save_mask, test_patientid, edge_set_zero=50)
+    logger.print_to_log_file('pred_iou_thresh: {}, mean_dice: {:.2f} +/- {:.2f}, mean_hd: {:.2f} +/- {:.2f}'.format(args.iou_thresh, dice[0], dice[1], hd[0], hd[1]))
+    compile(dice, hd, args.center, args.test_center, logger)
+elif args.test_only:
     if not os.path.exists(os.path.join(model_save_path, 'desam_model_best.pth')):
         print('use test_only after training!')
         raise
     
+    if test_center == "all":
+        logger.print_to_log_file('Running generalization evaluation on all centers except center {}'.format(args.center))
+    else:
+        logger.print_to_log_file('Running generalization evaluation on center {}'.format(test_center))
     desam = sam_model_registry[args.model_type](checkpoint=os.path.join(model_save_path, 'desam_model_best.pth'))
     desam.to(device=device)
     run_testing(
@@ -117,7 +137,6 @@ if args.test_only:
         iou_thresh=args.iou_thresh, ood_patientid=test_patientid, grid=args.grid, 
         logger=logger, pred_embedding=args.pred_embedding, device=device
     )
-
 else:
     run_training(
         model=desam, max_num_epochs=args.epoch, logger=logger, model_save_path=model_save_path,
@@ -126,6 +145,10 @@ else:
         iou_loss=iou_loss, device=device, is_mixprecision=args.mixprecision
     )
 
+    if test_center == "all":
+        logger.print_to_log_file('Running generalization evaluation on all centers except center {}'.format(args.center))
+    else:
+        logger.print_to_log_file('Running generalization evaluation on center {}'.format(test_center))
     desam = sam_model_registry[args.model_type](checkpoint=os.path.join(model_save_path, 'desam_model_best.pth'))
     desam.to(device=device)
     run_testing(

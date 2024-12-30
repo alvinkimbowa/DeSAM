@@ -53,7 +53,7 @@ def poly_lr(epoch, max_epochs, initial_lr, exponent=0.9):
     return initial_lr * (1 - epoch / max_epochs)**exponent
 
 
-def split_prostatedataset(data_root, patientid_path, center=1, seed=0, random_validation=False):
+def split_prostatedataset(data_root, patientid_path, center=1, test_center=-1, seed=0, random_validation=False):
     all_centers = ['A-ISBI', 'B-ISBI_1.5', 'C-I2CVB', 'D-UCL', 'E-BIDMC', 'F-HK']
     train_centers = [all_centers[center-1]]
     patientid = pd.read_csv(patientid_path)
@@ -76,10 +76,14 @@ def split_prostatedataset(data_root, patientid_path, center=1, seed=0, random_va
     val_patientid = [x for x in os.listdir(data_root) if int(x[9:12]) in val_patientid]
 
     # exclude centers
-    ood_centers = list(set(all_centers) - set(train_centers))
+    ood_centers = list(set(all_centers) - set(train_centers)) if test_center == -1 else [all_centers[test_center-1]]
     test_patientid = []
     for c in ood_centers:
         test_patientid.extend(patientid[patientid.center==c]['patientid'].values.tolist())
+
+    if test_center == center:
+        # just keep the patient id to be compatible with evaluation code
+        test_patientid = [int(x.split('_')[1].split('_')[0]) for x in val_patientid]
         
     return train_patientid, val_patientid, test_patientid
 

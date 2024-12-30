@@ -7,9 +7,10 @@ from medpy import metric
 
 def dice_calculate(gt_root, mask_proposals_root, test_patientid, edge_set_zero=0):
     dice_list = []
+    hd_list = []
     for patientid in tqdm(test_patientid):
-        patientid_path_list = [x for x in os.listdir(gt_root) if '_{}_'.format(str(patientid).zfill(3)) in x]
-        patientid_path_list = sorted(patientid_path_list)        
+        patientid_path_list = [x for x in os.listdir(gt_root) if '_{}_'.format(str(patientid).zfill(4)) in x]
+        patientid_path_list = sorted(patientid_path_list)    
         gt_numpy = []
         mask_numpy = []
         for patientid_path in patientid_path_list:
@@ -52,5 +53,13 @@ def dice_calculate(gt_root, mask_proposals_root, test_patientid, edge_set_zero=0
         
         dice = metric.dc(mask_numpy, gt_numpy)
         dice_list.append(dice)
-        
-    return np.mean(dice_list)
+
+        hd = metric.hd(mask_numpy, gt_numpy)
+        hd_list.append(hd)
+    
+    dice = np.mean(dice_list) * 100
+    dice_std = np.std(dice_list) * 100
+    hd = np.mean(hd_list)
+    hd_std = np.std(hd_list)
+
+    return (dice, dice_std), (hd, hd_std)
